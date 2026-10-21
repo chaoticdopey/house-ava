@@ -1,0 +1,42 @@
+{
+  "name": "Claire",
+  "gender": "female",
+  "default_voice": "en-US-AvaNeural",
+  "voice_locked": true,
+  "drive": "text timeline on the audio clock, not loudness",
+  "rest": "idle.jpg",
+  "visemes": {
+    "rest": "idle.jpg",
+    "MBP": "idle.jpg",
+    "EE": "mouth_ee.jpg",
+    "AH": "mouth_open.jpg",
+    "OH": "mouth_oh.jpg",
+    "OO": "mouth_oo.jpg",
+    "FV": "mouth_fv.jpg",
+    "L": "mouth_l.jpg",
+    "WQ": "mouth_narrow.jpg",
+    "wide": "mouth_wide.jpg"
+  },
+  "letters": {
+    "MBP": "mbp",
+    "FV": "fv",
+    "L": "l",
+    "OO": "uwq",
+    "OH": "o",
+    "EE": "ei",
+    "AH": "a",
+    "WQ": "ctdkghszjnrx"
+  },
+  "emotions": [
+    "smile",
+    "laugh",
+    "sad",
+    "point",
+    "surprised",
+    "confused",
+    "serious",
+    "think",
+    "blink",
+    "heartbeat"
+  ]
+}

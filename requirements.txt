@@ -1,0 +1,10 @@
+# House Ava - the hub (python -m houseava.satellite run). Python 3.11 or newer.
+requests
+numpy
+edge-tts>=7.3.1       # her voice (older versions get HTTP 403 from Microsoft)
+av                    # MP3 decode / resample to the Echo's 16 kHz mono WAV
+faster-whisper>=1.2   # speech to text (and the Silero VAD it bundles)
+aioesphomeapi>=46     # talking to the TECHO5 Echoes (tested with 46.9.0)
+mutagen>=1.47         # the music library's tag index
+pillow                # her face on the Echo screen
+noiseprotocol         # the encrypted face stream to the Echo

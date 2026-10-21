@@ -1,0 +1,3 @@
+# Optional extras for House Ava.
+kokoro-onnx           # offline voice when Microsoft's can't be reached (needs voices/kokoro, see docs/SETUP.md)
+# aiohubspace         # Hubspace plugs - experimental, never run against a real plug yet

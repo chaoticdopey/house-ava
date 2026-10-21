@@ -1,0 +1,20 @@
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+*.log
+*.tgz
+
+# your own stuff never goes in the repo: in dev mode the project folder is the data folder
+houseava_config.json
+memory.json
+conversations.jsonl
+routines.json
+jokes_used.json
+mic_mute.json
+hubspace_password.txt
+turn_audio/
+voiceprints/
+music/
+voices/
+wakeword/
