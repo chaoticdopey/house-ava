@@ -124,8 +124,8 @@ DEFAULTS: dict[str, Any] = {
     "facecast": {"enabled": True, "port": 8793, "key": "", "face": "ava", "frames": ""},
     # people: speaker identification on the Echoes
     "people": {"enrolled": [], "identify": True, "sensitivity": 1.0, "unknown_voice": "allow"},
-    # where you are, for sunrise / sunset routines (decimal degrees, e.g. 40.71 / -74.01). Blank = those
-    # triggers just don't fire.
+    # where you are (decimal degrees, e.g. 40.71 / -74.01): home for the weather, and sunrise / sunset routines.
+    # Blank = the sun triggers don't fire, and the weather looks web.city up by name (or guesses from the IP).
     "location": {"lat": None, "lon": None},
     # personality: adult = the dirty / adult / morbid joke banks; cussing = she swears for real (persona.py injects
     # it + quips.py gives sweary light/plug lines). Both off by default - turn them on if that's your house.

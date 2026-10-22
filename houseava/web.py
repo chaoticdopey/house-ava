@@ -5,6 +5,7 @@ Adapted from desktop Ava, standalone.
 
 from __future__ import annotations
 
+import datetime as _dt
 import html
 import re
 import time
@@ -147,39 +148,111 @@ _WMO = {0: "clear", 1: "mostly clear", 2: "partly cloudy", 3: "overcast", 45: "f
         82: "heavy rain showers", 95: "thunderstorms", 96: "thunderstorms with hail", 99: "thunderstorms with hail"}
 
 
-def weather(cfg, where: str = "", when: str = "today") -> dict:
-    city = (where or "").strip() or str((cfg.get("web.city", "") if cfg else "") or "").strip()
+_DAYS = ("monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday")
+# the week ahead: "the 7 day forecast", "this week", "the next few days". And "a Saturday forecast": that's how
+# whisper hears "a seven-day forecast" (10-21), and the week has Saturday in it anyway ("the forecast for Saturday"
+# and "Saturday's weather" are still just Saturday)
+_RX_WEEK = re.compile(r"\b(?:(?:5|7|10|five|seven|ten)[ -]?days?|week(?:ly)?|(?:next|coming) (?:few|several|couple(?: of)?) "
+                      r"days|extended|long[ -]range|a saturday forecast)\b", re.I)
+_RX_WEEKEND = re.compile(r"\bweekend\b", re.I)
+_RX_DAY = re.compile(r"\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)s?\b", re.I)
+
+
+def forecast_when(text: str) -> str:
+    """What a weather request asks about: "today", "tomorrow", "week", "weekend", or a day ("saturday")."""
+    low = (text or "").lower()
+    if _RX_WEEK.search(low):
+        return "week"
+    if _RX_WEEKEND.search(low):
+        return "weekend"
+    m = _RX_DAY.search(low)
+    if m:
+        return m.group(1)
+    return "tomorrow" if "tomorrow" in low else "today"
+
+
+def _home(cfg):
+    """(lat, lon) from location.lat / location.lon, or None. Exact, where a town's name can match a few places."""
     try:
-        if city:
-            r = requests.get("https://geocoding-api.open-meteo.com/v1/search",
-                             params={"name": city, "count": 1, "language": "en"}, headers=_UA, timeout=8)
-            res = (r.json().get("results") or []) if r.status_code == 200 else []
+        return float(cfg.get("location.lat")), float(cfg.get("location.lon"))
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+
+def weather(cfg, where: str = "", when: str = "today") -> dict:
+    """The weather now and for today, tomorrow, a day of the week, the weekend or the week ahead (see forecast_when).
+    Where: a place that was named, else home (location.lat/lon, called web.city), else web.city by name, else a
+    guess from this box's internet address."""
+    city = (where or "").strip()
+    home_name = str((cfg.get("web.city", "") if cfg else "") or "").strip()
+    try:
+        spot = None if city else _home(cfg)
+        if spot:
+            (lat, lon), label = spot, home_name
         else:
+            name = city or home_name
             res = []
-        if res:
-            g = res[0]
-            lat, lon, label = float(g["latitude"]), float(g["longitude"]), g.get("name", city)
-        else:
-            r = requests.get("http://ip-api.com/json/?fields=status,city,lat,lon", headers=_UA, timeout=6)
-            d = r.json() if r.status_code == 200 else {}
-            if d.get("status") != "success":
-                return {"ok": False, "say": "I couldn't work out where to get the weather for."}
-            lat, lon, label = float(d["lat"]), float(d["lon"]), d.get("city", "your area")
+            if name:
+                r = requests.get("https://geocoding-api.open-meteo.com/v1/search",
+                                 params={"name": name, "count": 1, "language": "en"}, headers=_UA, timeout=8)
+                res = (r.json().get("results") or []) if r.status_code == 200 else []
+            if res:
+                g = res[0]
+                lat, lon, label = float(g["latitude"]), float(g["longitude"]), g.get("name", name)
+            elif name:
+                return {"ok": False, "say": f"I couldn't find {name} on the map."}
+            else:
+                r = requests.get("http://ip-api.com/json/?fields=status,city,lat,lon", headers=_UA, timeout=6)
+                d = r.json() if r.status_code == 200 else {}
+                if d.get("status") != "success":
+                    return {"ok": False, "say": "I couldn't work out where to get the weather for."}
+                lat, lon, label = float(d["lat"]), float(d["lon"]), d.get("city", "")
         r = requests.get("https://api.open-meteo.com/v1/forecast", params={
             "latitude": lat, "longitude": lon, "current": "temperature_2m,weather_code",
             "daily": "temperature_2m_max,temperature_2m_min,weather_code", "temperature_unit": "fahrenheit",
-            "timezone": "auto", "forecast_days": 2}, headers=_UA, timeout=8)
+            "timezone": "auto", "forecast_days": 7}, headers=_UA, timeout=8)
         d = r.json()
     except Exception as exc:
         return {"ok": False, "say": f"The weather service didn't answer: {exc}"}
     cur, daily = d.get("current", {}), d.get("daily", {})
-    idx = 1 if "tomorrow" in (when or "").lower() else 0
     try:
-        hi, lo = round(daily["temperature_2m_max"][idx]), round(daily["temperature_2m_min"][idx])
-        code = _WMO.get(int(daily["weather_code"][idx]), "mixed")
+        days = [_dt.date.fromisoformat(x) for x in daily["time"]]
+        hi = [round(x) for x in daily["temperature_2m_max"]]
+        lo = [round(x) for x in daily["temperature_2m_min"]]
+        sky = [_WMO.get(int(c), "mixed") for c in daily["weather_code"]]
+        assert days and len(days) == len(hi) == len(lo) == len(sky)
     except Exception:
         return {"ok": False, "say": "The weather came back garbled."}
-    if idx == 0 and cur:
-        now = f"It's {round(cur.get('temperature_2m', 0))} and {_WMO.get(int(cur.get('weather_code', 0)), 'mixed')} in {label}"
-        return {"ok": True, "say": f"{now}. High {hi}, low {lo}."}
-    return {"ok": True, "say": f"Tomorrow in {label}: {code}, high {hi}, low {lo}."}
+    at = f" in {label}" if label else ""
+
+    def deg(n) -> str:
+        return f"{n} degree" if abs(n) == 1 else f"{n} degrees"
+
+    def hilo(i: int) -> str:
+        return f"high {deg(hi[i])} and low {deg(lo[i])}"
+
+    def day(i: int) -> str:
+        return "today" if i == 0 else "tomorrow" if i == 1 else days[i].strftime("%A")
+
+    w = (when or "today").lower().strip()
+    if w == "week":
+        parts = [f"{day(i).capitalize()} {sky[i]}, {hilo(i)}" for i in range(len(days))]
+        return {"ok": True, "say": f"The next {len(days)} days{at}: " + ". ".join(parts) + "."}
+    if w == "weekend":
+        idx = [i for i, x in enumerate(days) if x.weekday() >= 5 and (x - days[0]).days <= 6 - days[0].weekday()]
+        if idx:
+            return {"ok": True, "say": f"This weekend{at}: " + ". ".join(
+                f"{day(i).capitalize()} {sky[i]}, {hilo(i)}" for i in idx) + "."}
+        w = "today"
+    if w in _DAYS:
+        i = next((i for i, x in enumerate(days) if x.weekday() == _DAYS.index(w)), 0)
+        if i:
+            name = days[i].strftime("%A") if i > 1 else f"Tomorrow, {days[i].strftime('%A')},"
+            return {"ok": True, "say": f"{name}{at}: {sky[i]}, {hilo(i)}."}
+        w = "today"
+    if w == "tomorrow" and len(days) > 1:
+        return {"ok": True, "say": f"Tomorrow{at}: {sky[1]}, {hilo(1)}."}
+    if cur:
+        now = f"It's {deg(round(cur.get('temperature_2m', 0)))} and {_WMO.get(int(cur.get('weather_code', 0)), 'mixed')}{at}"
+        return {"ok": True, "say": f"{now}. {hilo(0).capitalize()}."}
+    return {"ok": True, "say": f"Today{at}: {sky[0]}, {hilo(0)}."}

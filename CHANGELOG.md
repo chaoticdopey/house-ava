@@ -3,6 +3,23 @@
 What I added since I started it on Oct 4, from my notes. Before today it all lived in my own repo, so this is the
 first public version.
 
+## 2026-10-22
+
+- **A step-by-step install tutorial** ([INSTALL.md](INSTALL.md)) for anyone who wants to try it, with a check after
+  every step and a test checklist at the end.
+- **`python -m houseava.find_bulbs`** lists the WiZ bulbs on your network and prints a config to start from.
+  `--blink <ip>` flashes one so you can tell which is which.
+- **The weather does the whole week now.** "Give me a seven-day forecast", "what's the weather Saturday", "this
+  weekend", or tomorrow. Whisper hears "a seven-day forecast" as "a Saturday forecast", so that gets the week too.
+  Every answer says "high 58 degrees and low 50 degrees".
+- The weather uses your `location` when it's set. Looking a town up by name can land on the wrong one, since lots of
+  towns share a name.
+- "What's the weather in Chicago" is Chicago's weather (it used to answer for home), and a town that isn't on the
+  map gets "I couldn't find it" instead of a guess from your IP.
+- "This weekend" asked on a Sunday is today, not today plus next Saturday.
+- The PIN made on the first start isn't printed in the log anymore (testers attach logs to bug reports). It's in
+  the config: `grep '"pin"' ~/.houseava/houseava_config.json`.
+
 ## 2026-10-21: first public release
 
 - Put it on GitHub. My house stuff is out of the defaults: no bulbs, no location and no music share are set, a

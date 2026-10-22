@@ -20,6 +20,9 @@ help out.
 </tr>
 </table>
 
+> **Want to try it?** The **[step-by-step install tutorial](INSTALL.md)** takes you from a blank Linux box to
+> "Alexa, turn off the lights", with a check after every step.
+>
 > **Heads up:** this is a hobby project for my own house that I'm sharing. It works great for me, but it's only
 > been run on my two Echoes so far. If you try it, I'd love to hear how it goes (see [Help me out](#help-me-out)).
 
@@ -34,7 +37,9 @@ help out.
   switches, off by default.
 - She remembers stuff you tell her ("remember my car is in spot 14") and forgets it when you ask.
 - She knows the last few lines of what was said in that room, so follow-ups make sense.
-- Time, date, timers and weather are answered instantly with no model involved.
+- Time, date, timers and weather are answered instantly with no model involved. The weather does today, tomorrow,
+  any day of the week, the weekend, or the whole week ("give me a seven-day forecast"), for home or another town
+  ("what's the weather in Chicago").
 - She tunes out the room. Whisper's made-up words ("Thanks for watching!") get thrown out, and if you turn on
   follow-up listening, chatter she hears after a reply that wasn't meant for her gets ignored.
 
@@ -161,7 +166,9 @@ wake word, mics, speaker and screen, and House Ava handles everything else. The 
 
 ## Getting started
 
-The full step-by-step is in **[docs/SETUP.md](docs/SETUP.md)**. The short version:
+**New to this? Follow [INSTALL.md](INSTALL.md)**: every command, what you should see after each step, and a test
+checklist at the end. Every option is in [docs/SETUP.md](docs/SETUP.md). The short version, if you've done this kind
+of thing before:
 
 1. Flash your Echo with [TECHO5](https://github.com/HuskerMinion/techo5) and keep the API key the installer gives you.
 2. On a Linux box: install Ollama, pull a model, and `sudo apt install git curl python3-venv fonts-dejavu-core libnss-mdns`.
@@ -169,9 +176,11 @@ The full step-by-step is in **[docs/SETUP.md](docs/SETUP.md)**. The short versio
    `git clone https://github.com/chaoticdopey/house-ava ~/house-ava && cd ~/house-ava && bash deploy/install-houseava.sh`
 4. Add your Echo:
    `cd ~/houseava && HOUSEAVA_DIR=~/.houseava .venv/bin/python -m houseava.satellite add --name "Kitchen Echo" --ip kitchen-echo.local --room kitchen --psk '<key>'`
-5. Add your bulbs to `~/.houseava/houseava_config.json` (edit the file the add command made, don't replace it:
-   your Echo's in there), then run `systemctl --user restart houseava`
-6. Open `http://<your server>:8792` on your phone. The PIN is in the log the first time it starts.
+5. Find your bulbs with `cd ~/houseava && .venv/bin/python -m houseava.find_bulbs`, add them (and your
+   `location`) to `~/.houseava/houseava_config.json` with the hub stopped (edit the file the add command made,
+   don't replace it: your Echo's in there), then run `systemctl --user start houseava`
+6. Open `http://<your server>:8792` on your phone. The PIN is made on the first start:
+   `grep '"pin"' ~/.houseava/houseava_config.json`
 
 Then: "Alexa, turn off the lights."
 
@@ -179,7 +188,7 @@ Then: "Alexa, turn off the lights."
 
 ## What's tested
 
-Fifteen test suites, all passing on a clean install (Debian 13, Python 3.13). There's more on what each one covers,
+Seventeen test suites, all passing on a clean install (Debian 13, Python 3.13). There's more on what each one covers,
 plus everything I've tried on the real Echoes, in **[docs/TESTING.md](docs/TESTING.md)**. A few things still haven't
 been tested for real: Hubspace plugs, a full live call between the two Echoes, arm-the-house from a real walk-in,
 and anything that isn't a Show 5 / Show 8 1st gen.
@@ -192,7 +201,7 @@ What changed along the way is in **[CHANGELOG.md](CHANGELOG.md)**.
 
 - Nothing goes to Amazon. Speech to text and the brain run on your box.
 - The things that use the internet: Microsoft's voice (edge-tts), web search fallbacks, weather (Open-Meteo, plus
-  ip-api.com to guess your city if you don't set one), phone pushes (ntfy.sh) and Hubspace. The first start also
+  ip-api.com to guess where you are if you don't set a location or city), phone pushes (ntfy.sh) and Hubspace. The first start also
   downloads the whisper model. After that, lights, brain, speech to text and the offline voice all keep working
   without the internet.
 - Recording voice turns for tuning (`stt.keep_audio`) is **off** by default. The text of what was said and her

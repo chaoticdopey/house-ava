@@ -672,8 +672,12 @@ class AdminServer:
             pin = f"{secrets.randbelow(10**6):06d}"
             self.cfg.set("admin.pin", pin)
             saved = self.cfg.save()
-            log.warning("admin: no PIN was set, so one was made: %s (%s)", pin,
-                        "it's in the config as admin.pin" if saved else "it couldn't be saved, so it lasts until a restart")
+            # (not the PIN itself when it's saved: people attach this log to public bug reports)
+            if saved:
+                log.warning("admin: no PIN was set, so one was made: it's admin.pin in %s", self.cfg.path)
+            else:
+                log.warning("admin: no PIN was set, so one was made: %s (it couldn't be saved, so it lasts until a "
+                            "restart)", pin)
         self._httpd = ThreadingHTTPServer(("0.0.0.0", self.port), AdminHandler)
         self.port = self._httpd.server_address[1]       # resolve 0 -> the real bound port
         self._httpd.cfg = self.cfg

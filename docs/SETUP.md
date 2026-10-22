@@ -1,5 +1,8 @@
 # Setting up House Ava
 
+**Trying it for the first time? Start with [INSTALL.md](../INSTALL.md)**, the step-by-step tutorial with a check after
+each step. This page is the reference: every option, in the same order.
+
 This is everything I did to get it running, in order. I did it on Debian 13. Ubuntu should be about the same, but I
 haven't tried it. Expect an hour or two, not counting flashing the Echo.
 
@@ -69,6 +72,15 @@ sudo apt install nvidia-driver
 sudo reboot                                   # the old nouveau driver has to go before the NVIDIA one loads
 nvidia-smi                                    # should show your card
 ```
+
+**Secure Boot:** if it's on, the driver won't load. Most PCs ship with it on, and so does a Proxmox VM that uses
+UEFI (OVMF) with the default "Pre-Enroll keys". Check with `mokutil --sb-state` (`sudo apt install mokutil` if it's
+missing). Then either:
+- **turn it off** in the firmware (a Proxmox VM: press Esc as it boots, then Device Manager → Secure Boot
+  Configuration, untick Attempt Secure Boot), or
+- **keep it on** and, after installing the driver, run `sudo mokutil --import /var/lib/dkms/mok.pub`. Pick a one-time
+  password, reboot, and choose **Enroll MOK** on the blue screen (you need a monitor, or the Proxmox console).
+
 
 I pass an RTX A2000 12 GB through to a Proxmox VM (vfio-pci), and it works like it's bare metal.
 
@@ -184,10 +196,10 @@ The important bits:
 | Key | What it is |
 |---|---|
 | `timezone` | The Echo's screen clock. Leave it blank and it uses the server's own time zone, so just set that (`sudo timedatectl set-timezone America/New_York`) and both her spoken time and the screen are right. Or give a POSIX TZ rule: Eastern `EST5EDT,M3.2.0,M11.1.0`, Central `CST6CDT,M3.2.0,M11.1.0`, Mountain `MST7MDT,M3.2.0,M11.1.0`, Pacific `PST8PDT,M3.2.0,M11.1.0`. |
-| `location.lat` / `lon` | For sunrise/sunset routines. Leave them out and those just don't fire. |
-| `web.city` | For the weather. Blank = she guesses from your IP (ip-api.com). |
+| `location.lat` / `lon` | Where you are: the weather and sunrise/sunset routines use it. On Google Maps, right-click your house and the first line is these two numbers. Leave them out and the sun routines don't fire. |
+| `web.city` | What she calls your town ("the next 7 days in Springfield"). With no `location`, the weather looks this name up instead (a town name can match a few places, so `location` is better). Neither set = she guesses from your IP (ip-api.com). "What's the weather in Chicago" always looks the named town up. |
 | `http.public_host` | The server's IP as the Echoes see it. The Echo fetches her replies, songs, face and wake-word files from this. It's worked out by itself; set it if your box has more than one network, or if the log says `face streaming from` an address the Echo can't reach. |
-| `lights.bulbs` | WiZ bulbs, `{"name": "ip"}`. Name them `<room> <number>` so "bedroom light two" works. |
+| `lights.bulbs` | WiZ bulbs, `{"name": "ip"}`. Name them `<room> <number>` so "bedroom light two" works. `cd ~/houseava && .venv/bin/python -m houseava.find_bulbs` lists the ones on your network (and `--blink <ip>` flashes one so you can tell which is which). |
 | `lights.rooms` | Which bulbs are in which room. |
 | `lights.aliases` | Other names people use for a room: `{"master bedroom": "bedroom", "den": "living room"}`. |
 | `persona` | `sassy`, `warm` or `deadpan`. |
@@ -328,7 +340,7 @@ You want to see, more or less in this order:
 
 ```
 reply server on port 8790
-admin: no PIN was set, so one was made: 123456 (it's in the config as admin.pin)    ← first run only
+admin: no PIN was set, so one was made: it's admin.pin in /home/you/.houseava/houseava_config.json    ← first run only
 admin server on port 8792
 face renderer: 2 frame(s) from /home/you/houseava/faces/ava
 facecast server on port 8793
@@ -346,7 +358,7 @@ Then try it out loud:
 - "Alexa, who wrote Moby Dick" (this one uses the model)
 
 The Echo's screen should switch to her face and the clock. On your phone, open `http://<server>:8792` and use the PIN
-from the log. **Status** shows the Echoes, and **Chat** lets you type to her.
+(`grep '"pin"' ~/.houseava/houseava_config.json`). **Status** shows the Echoes, and **Chat** lets you type to her.
 
 No Echo yet? You can type to her from the terminal. This switches your **real** lights:
 
@@ -369,7 +381,7 @@ cd ~/houseava && HOUSEAVA_DIR=~/.houseava .venv/bin/python -m houseava.cli --roo
 
 **Going out from the server:** TCP 6053 to each Echo (ESPHome API, encrypted with the psk), UDP 38899 to the WiZ
 bulbs, and 443 to the internet for her voice, search, weather and pushes (plus 80 for ip-api.com, only when
-`web.city` is blank).
+neither `location` nor `web.city` is set).
 
 Keep Ollama (11434) and SearXNG on localhost, and **don't port-forward 8792 to the internet.**
 

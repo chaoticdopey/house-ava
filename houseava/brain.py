@@ -172,6 +172,30 @@ _RX_TIME = re.compile(r"^(?:(?:alexa|ava|hey|ok|okay|so|and|um|uh|oh|well|wait|s
                       r"(?:[,\s]+(?:please|now|right now|ava|alexa))?[?.!]*$|what time is it", re.I)
 _RX_DATE = re.compile(r"what(?:'s| is)?\s+(?:the\s+|today'?s\s+)?date|what day is it", re.I)
 _RX_WEATHER = re.compile(r"\b(?:weather|forecast|temperature|how (?:hot|cold)|gonna rain|going to rain)\b", re.I)
+# "what's the weather in Chicago" / "the forecast for New York this weekend": the place, when one's named. What
+# follows in/for/at that's a time ("for Saturday", "this week"), here/home, or one of the house's rooms isn't one.
+_RX_WEATHER_PLACE = re.compile(r"\b(?:in|for|at)\s+(?P<p>[a-z][a-z .'-]{0,40}?)\s*(?:\b(?:today|tomorrow|tonight|this|"
+                               r"next|on|over|for|at|in|right now|now|later|please)\b.*)?$")
+_NOT_A_PLACE = re.compile(r"\b(?:today|tomorrow|tonight|week|weekend|days?|morning|afternoon|evening|night|now|later|"
+                          r"monday|tuesday|wednesday|thursday|friday|saturday|sunday|forecast|weather|here|home|"
+                          r"outside|there|house|area|town|it|me|us|a bit|a while)\b|^(?:the|my|our|a|an)$")
+
+
+def _weather_place(low: str, rooms=()) -> str:
+    """The town in a weather question, or "" for home. Each in/for/at is tried in turn: "the forecast for Saturday
+    in Chicago" is Chicago."""
+    low = re.sub(r"[,]?\s*\b(?:please|ava|alexa|thanks|thank you)$", "", low).strip()
+    room_names = {r.lower() for r in rooms}
+    for at in re.finditer(r"\b(?:in|for|at)\s+", low):
+        m = _RX_WEATHER_PLACE.match(low, at.start())
+        if not m:
+            continue
+        p = re.sub(r"^(?:the|my|our)\s+", "", m.group("p").strip(" .'-"))
+        if p and not _NOT_A_PLACE.search(p) and p not in room_names:
+            return p
+    return ""
+
+
 _RX_TIMER = re.compile(r"(?:set|start)\s+a?\s*timer\s+for\s+(?P<n>\d+)\s*(?P<unit>second|minute|hour)s?", re.I)
 # Whisper's far-field slips on her OTHER commands (the lights have lightcmd._whisper_slips): the START of an utterance
 # only, clear patterns only (10-19, from 600 meant/heard pairs written off the real ones)
@@ -843,8 +867,8 @@ class Router:
             if m and m.group("name").strip() in plug_names:
                 return self.plugs.set_state(m.group("name").strip(), m.group("on") == "on")
         if _RX_WEATHER.search(low):
-            when = "tomorrow" if "tomorrow" in low else "today"
-            return web.weather(self.cfg, when=when)
+            rooms = self.lights.rooms() if self.lights is not None and hasattr(self.lights, "rooms") else ()
+            return web.weather(self.cfg, where=_weather_place(low, rooms), when=web.forecast_when(low))
         return None
 
     # ---- lights (lightcmd.py reads the sentence, lights.py does it) ----
@@ -1462,7 +1486,7 @@ class Router:
         if action == "forget":
             return self.memory.forget(str(intent.get("query") or t))
         if action == "weather":
-            return web.weather(self.cfg, where=target)
+            return web.weather(self.cfg, where=target, when=web.forecast_when(t))
         if action == "search":
             extra = {}
             try:                                       # (the conversation, for a follow-up - when answer() takes it)

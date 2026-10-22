@@ -2,7 +2,7 @@
 
 ## The test suites
 
-Fifteen standalone scripts in `tests/`. Each one prints a line per check (the two big light ones print a passed
+Seventeen standalone scripts in `tests/`. Each one prints a line per check (the two big light ones print a passed
 count, plus any misses) and exits 1 if anything failed. No
 real Echo, bulb or model is needed: they use fake Echoes, fake bulbs and fake brains, and a temp data folder.
 
@@ -16,7 +16,7 @@ for t in tests/run_tests.py tests/test_*.py; do .venv/bin/python "$t" > /dev/nul
 own, but set it anyway. Stop the live hub first (`systemctl --user stop houseava`) or run the tests on another box,
 because `test_music` wants the ports the hub is using.
 
-All 15 pass on a clean install (Debian 13, Python 3.13, the versions `requirements.txt` pulls today):
+All 17 pass on a clean install (Debian 13, Python 3.13, the versions `requirements.txt` pulls today):
 
 | Suite | What it checks | Checks |
 |---|---|---|
@@ -34,6 +34,8 @@ All 15 pass on a clean install (Debian 13, Python 3.13, the versions `requiremen
 | `test_roast.py` | Roasts, recent conversation, the intruder alert, the volume button, clean mode with swearing off | 92 |
 | `test_facecast.py` | Which picture gets used, transparent PNGs, the clock never running over the face at 5 screen sizes, the app's face picker, keeping the face when a new picture can't be shown, the wrong-PIN backoff | 63 |
 | `test_watchdog.py` | Rebuilding a stuck Echo connection | 9 |
+| `test_weather.py` | What a weather question asks for (today / tomorrow / a weekday / the weekend / the week, and "a Saturday forecast" being whisper's "a seven-day forecast"), which town is named ("in Chicago", but not "in here" or a room), every answer against a faked week, "this weekend" asked on a Saturday or Sunday, where "home" is, a town that isn't on the map | 46 |
+| `test_find_bulbs.py` | The bulb finder hearing a (fake) WiZ bulb, ignoring junk, never switching anything, and `--blink` | 6 |
 
 A couple of suites print a traceback in the middle on purpose (a fake brain that fails), and they still pass.
 

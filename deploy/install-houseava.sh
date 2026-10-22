@@ -106,6 +106,6 @@ if [ -n "$sats" ]; then
 else
     echo "No Echo configured yet, so it isn't started. Add each one, then start it:"
     echo "    cd ~/houseava && HOUSEAVA_DIR=~/.houseava .venv/bin/python -m houseava.satellite add \\"
-    echo "        --name kitchen --ip kitchen-echo.local --room kitchen --psk <key from the TECHO5 installer>"
+    echo "        --name \"Kitchen Echo\" --ip kitchen-echo.local --room kitchen --psk '<key from the TECHO5 installer>'"
     echo "    systemctl --user restart houseava"
 fi

@@ -21,7 +21,8 @@ client, the same seat Home Assistant would normally sit in.
 | `admin.py` | The phone app and its JSON API. |
 | `memory.py`, `convlog.py` | What she remembers, the recent conversation per room, and the log the app shows. |
 | `jokes.py`, `comebacks.py`, `quips.py` | The joke banks (no repeats until a bank's used up), comebacks, and the little "done!" lines. |
-| `web.py` | Search (SearXNG → Wikipedia → Google News → DuckDuckGo) and weather (Open-Meteo). |
+| `web.py` | Search (SearXNG → Wikipedia → Google News → DuckDuckGo) and weather (Open-Meteo: today, tomorrow, a day, the weekend or the week ahead). |
+| `find_bulbs.py` | `python -m houseava.find_bulbs`: lists the WiZ bulbs on your network for the config, `--blink` to tell them apart. |
 | `plugs.py` | Hubspace plugs (experimental). |
 | `voiceprint.py` | Voice enrollment from the app. Stored, but not used during turns yet. |
 
